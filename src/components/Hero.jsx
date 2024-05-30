@@ -5,7 +5,7 @@ import { CONFIG } from './../config/config'
 import { useState } from "react";
 
 import { writeContract, waitForTransactionReceipt  } from '@wagmi/core'
-import { useAccount, useConfig } from 'wagmi';
+import { useAccount, useConfig, useReadContracts } from 'wagmi';
 
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
@@ -14,6 +14,20 @@ const MySwal = withReactContent(Swal)
 
 import '@sweetalert2/theme-dark/dark.min.css';
 import Loading from "./Loading";
+
+// new
+// import { useContract,  useContractQuery, useContractMutation } from 'wagmi';
+
+
+
+
+import { ethers } from "ethers";
+import { useEffect } from "react";
+
+
+// import Web3 from 'web3';
+// import ClaimButton from "./Claimbutton";
+
 
 
 const Hero = () => {
@@ -73,6 +87,91 @@ const Hero = () => {
         });
     }
   }
+//   new
+const [currentAccount, setCurrentAccount ] = useState('');
+const [userAddress, setUserAddress] = useState('');
+const [walletBalance , setWalletBalance] = useState(0);
+
+useEffect(() => { 
+    const detailsOn = async () => { 
+        const { ethereum } = window;
+
+        //  if (!ethereum) 
+           if (typeof window.ethereum == 'undefined')
+            { 
+         setUserAddress('0')
+         setWalletBalance('0')
+          return;
+         }
+         
+         const provider = new ethers.providers.Web3Provider(ethereum);
+          const signer = provider.getSigner();
+          const addr = await signer.getAddress();
+           setUserAddress(addr.toString()); 
+
+           const balance = await provider.getBalance(addr);
+           setWalletBalance(ethers.utils.formatEther(balance));
+        };
+
+        detailsOn();
+    }, [] );
+
+// fromTradecurve
+// const { data, isPending, isSuccess, refetch } = useReadContracts({
+//     contracts: [
+//       {
+//         ...claimingContract,
+//         functionName: "userInitialized",
+//         args: [address],
+//       },
+//       {
+//         ...claimingContract,
+//         functionName: "userBalance",
+//         args: [address],
+//       },
+//       {
+//         ...claimingContract,
+//         functionName: "tokensClaimed",
+//         args: [address],
+//       },
+//     ],
+//   });
+
+
+
+    // claim button
+    // const tokenAddress = '0x83cdF3427b5E04aD06e80304d200c07B20CfB652'; 
+    // Replace with your token contract address
+    // const tokenABI = [abi];
+     // Replace with your token contract ABI
+     
+     //from trade curve
+
+    //  const [totalPurchaseAmount, setTotalPurchaseAmount] = useState(0);
+    //  useEffect(() => {
+    //     if (isConnected) {
+    //         refetch()
+    //       const tree = StandardMerkleTree.load(treeJson);
+    //       let totalTokens = 0;
+    //       for (const [i, v] of tree.entries()) {
+    //         if (v[0] === address) {
+    //           totalTokens = v[1];
+    //         }
+    //       }
+    
+    //       setTotalPurchaseAmount(formatEther(totalTokens));
+    //     }
+    //   }, [address, isConnected]);
+    
+
+     
+    //  const { write } = useContractWrite({
+    //    address: '0x83cdF3427b5E04aD06e80304d200c07B20CfB652',
+    //    abi: [abi],
+    //    functionName: 'claim',
+    //    args: ['100'],
+    //  });
+   
   
 //   const [showtext, setShowtext] = useState("Wallet Address");
 
@@ -118,13 +217,33 @@ const Hero = () => {
                     
                     <div>
                         <h1 className="text-[20px] font-bold font-sans-serif ">Wallet Address</h1>
-                        <p >0x123456789</p>
+                        <div className="max-w-[500px] mr-[20px] w-[100%] overflow-hidden flex ">
+                         <p >
+                            {userAddress}
+                            Address
+                            </p>
+                           </div>
                         </div>
                        
                        <div>
                         <h1  className=" text-[20px] font-bold font-sans-serif ">Claiming Amount</h1>
-                        <p>0.00</p>
+                        <p>
+                            {walletBalance} 
+                        ETH</p>
                        </div>
+                                         {/* <div>
+                    <h1 className=" text-[20px] font-bold font-sans-serif ">
+                      Purchase Amount
+                    </h1>
+                    <p>
+                      {new Intl.NumberFormat("en-us").format(
+                        totalPurchaseAmount
+                      )}
+                    </p>
+                  </div> */}
+
+                  
+
                      
 
                        <div className="w-[100%] flex justify-center max-w-[700px] self-center mr-[20px] bg-white h-[2px]"></div>
@@ -154,21 +273,24 @@ const Hero = () => {
                              </div>
                        </div>
 
-                       {/* <div>  <p className="text-brand-main text-3xl sm:text-4xl  font-bold">
-    {showtext}
-  </p>
-
-           <div className="options1 text-white-main p-[10px] "
-              onChange={(e)=>handletext(e)}><w3m-button/></div> 
-                            </div> */}
-
                  </div>
 
                   </div>
 
 
                 <div className="flex justify-center">
-                    <button disabled={loading} className="inline-flex rounded-md text-white font-sans-serif font-bold bg-[#643eba] border-0 py-2 px-12 focus:outline-none text-lg hover:bg-[#6b46c2]" onClick={handleClaim}>Claim</button>
+                    <button 
+                    disabled={loading}
+                     className="inline-flex rounded-md text-white font-sans-serif
+                      font-bold bg-[#643eba] border-0 py-2 px-12 focus:outline-none
+                       text-lg hover:bg-[#6b46c2]"
+                        onClick={handleClaim}
+                        >
+                            Claim
+                            </button>
+                            
+                    {/* <ClaimButton
+                    tokenAddress={tokenAddress} abi={tokenABI} /> */}
                 </div>
              
                 </div>

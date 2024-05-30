@@ -6,17 +6,21 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract Claiming is Ownable, ReentrancyGuard {
+contract PlxClaiming is Ownable, ReentrancyGuard {
     using SafeERC20  for IERC20;
 
     IERC20 private token;
     bytes32 public root;
 
-    uint256 public tokensClaimed;
+    enum Stage { STAGE_1, STAGE_2, STAGE_3, STAGE_4}
 
-    mapping(address => bool) public IsClaimed;
+    mapping(address => bool) public userInitialized;
+    mapping(address => uint256) public userBalance;
+    mapping(address => uint256) public tokensClaimed;
+
+    mapping(Stage => bool) public stageStarted;
+    mapping(address => mapping(Stage => bool)) public IsClaimed;
 
 
     event Claimed(address indexed tokenAddress, address indexed user, uint256 amount, uint256 indexed timestamp);
@@ -24,6 +28,12 @@ contract Claiming is Ownable, ReentrancyGuard {
     constructor(address _token, bytes32 _root) Ownable(msg.sender) {
         token = IERC20(_token);
         root = _root;
+
+    }
+
+    function allowStageRelease(Stage _stage) external onlyOwner {
+        require(!stageStarted[_stage], "Stage Already Started..");
+        stageStarted[_stage] = true;
     }
 
     function isValid(bytes32[] memory proof, bytes32 leaf) public view returns (bool) {
@@ -34,26 +44,45 @@ contract Claiming is Ownable, ReentrancyGuard {
         root = _root;
     }
 
-    function remainingRewardTokens() external view returns (uint256) {
-        return Math.min(token.balanceOf(owner()), token.allowance(owner(), address(this)));
-    }
 
     function Claim(uint256 _amount, bytes32[] memory proof) external nonReentrant {
         require(msg.sender != address(0), "CONTRACT: Caller is zero address");
         require(address(token) != address(0), "CONTRACT: Token is not set.");
         require(isValid(proof, keccak256(bytes.concat(keccak256(abi.encode(msg.sender, _amount))))), "Caller not whitelisted");
 
-        require(!IsClaimed[msg.sender], "Already Claimed");
+        if(!userInitialized[msg.sender]) {
+           userInitialized[msg.sender]  = true;
+           userBalance[msg.sender] = _amount;
+        } 
         
-        uint256 claimAmount = _amount;
-        require(claimAmount >  0, "Invalid Claim..");
+        uint256 claimAmount = 0;
+        if(stageStarted[Stage.STAGE_1] && !IsClaimed[msg.sender][Stage.STAGE_1]) {
+            claimAmount = claimAmount + (_amount * 25) / 100;
+            IsClaimed[msg.sender][Stage.STAGE_1] = true;
+        }
+        if(stageStarted[Stage.STAGE_2] && !IsClaimed[msg.sender][Stage.STAGE_2]) {
+            claimAmount = claimAmount + (_amount * 25) / 100;
+            IsClaimed[msg.sender][Stage.STAGE_2] = true;
+        }
+        if(stageStarted[Stage.STAGE_3] && !IsClaimed[msg.sender][Stage.STAGE_3]) {
+            claimAmount = claimAmount + (_amount * 25) / 100;
+            IsClaimed[msg.sender][Stage.STAGE_3] = true;
+        }
+        if(stageStarted[Stage.STAGE_4] && !IsClaimed[msg.sender][Stage.STAGE_4]) {
+            claimAmount = claimAmount + (_amount * 25) / 100;
+            IsClaimed[msg.sender][Stage.STAGE_4] = true;
+        }
 
-        IsClaimed[msg.sender] = true;
+        require(claimAmount <=  userBalance[msg.sender], "Invalid Claim..");
+        require(claimAmount >  0, "Invalid Claim..");
+        userBalance[msg.sender] = userBalance[msg.sender] - claimAmount;
+
         
-        tokensClaimed = tokensClaimed + claimAmount;
+        tokensClaimed[msg.sender] = tokensClaimed[msg.sender] + claimAmount;
         token.safeTransferFrom(owner(), msg.sender, claimAmount);
 
         emit Claimed(address(token), msg.sender, claimAmount, block.timestamp);
     }
+
 
 }

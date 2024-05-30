@@ -10,6 +10,7 @@ import { WagmiProvider } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+
 // 0. Setup queryClient
 const queryClient = new QueryClient()
 
